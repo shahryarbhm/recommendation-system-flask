@@ -1,0 +1,39 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+env/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Data files
+*.csv
+*.json
+*.zip
+
+# Log files
+*.log
+
+# Compiled Python files
+*.py[cod]
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Flask-specific files
+instance/
+.webassets-cache
+
+# Other
+.DS_Store
+Thumbs.db
