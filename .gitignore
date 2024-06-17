@@ -7,6 +7,8 @@ __pycache__/
 venv/
 .venv/
 env/
+*.jpg
+*lock*
 
 # IDE and editor files
 .vscode/
@@ -16,7 +18,6 @@ env/
 
 # Data files
 *.csv
-*.json
 *.zip
 
 # Log files
