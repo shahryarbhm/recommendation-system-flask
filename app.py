@@ -101,4 +101,4 @@ def recommend_genome_scores():
     return jsonify(imdb_recommendations)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
