@@ -23,16 +23,17 @@ def recommend_by_genre(movie_id, movie_data, top_n=5):
 
 def recommend_by_tag(movie_id, movie_data, tag_data, top_n=5):
     # Get the tags of the reference movie
-    reference_movie_tags = tag_data[tag_data['movieId'] == movie_id]['tag'].tolist()
-    
+    movie_tags_dict = tag_data.groupby('movieId')['tag'].apply(set).to_dict()
+    reference_movie_tags = movie_tags_dict.get(movie_id, set())
+
     # Calculate the tag similarity for each movie
     tag_similarity_scores = []
-    for index,movie in movie_data.iterrows():
-        if movie['movieId'] != movie_id:
-            movie_tags = tag_data[tag_data['movieId'] == movie['movieId']]['tag'].tolist()
-            similarity_score = jaccard_similarity(set(reference_movie_tags), set(movie_tags))
-            tag_similarity_scores.append((movie['movieId'], similarity_score))
-    
+    for movie_data_id in movie_data['movieId']:
+        if movie_id != movie_data_id:
+            movie_tags = movie_tags_dict.get(movie_data_id, set())
+            similarity_score = jaccard_similarity(reference_movie_tags, movie_tags)
+            tag_similarity_scores.append((movie_data_id, similarity_score))
+
     # Sort the movies based on tag similarity scores
     tag_similarity_scores.sort(key=lambda x: x[1], reverse=True)
     
@@ -81,7 +82,7 @@ def recommend_by_hybrid(movie_id, movie_data, tag_data, rating_data, genome_scor
     }
 
     # Assume each recommendation function is modified to return a list of tuples: (movie_id, score)
-    content_based_recommendations = [(movie_id, score * weights['content_based']) for movie_id, score in recommend_by_collaborative_filtering(movie_id,  rating_data, top_n)]
+    content_based_recommendations = [(movie_id, score * weights['collabrative_filtering']) for movie_id, score in recommend_by_collaborative_filtering(movie_id,  rating_data, top_n)]
     genre_recommendations = [(movie_id, score * weights['genre']) for movie_id, score in recommend_by_genre(movie_id, movie_data, top_n)]
     tag_recommendations = [(movie_id, score * weights['tag']) for movie_id, score in recommend_by_tag(movie_id, movie_data, tag_data, top_n)]
     genome_tags_recommendations = [(movie_id, score * weights['genome_tags']) for movie_id, score in recommend_by_genome_tags(movie_id, movie_data, genome_scores, genome_tags, top_n)]
