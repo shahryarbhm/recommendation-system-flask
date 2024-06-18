@@ -19,9 +19,7 @@ def recommend_by_genre(movie_id, movie_data, top_n=5):
     # Sort the movies based on genre similarity scores
     genre_similarity_scores.sort(key=lambda x: x[1], reverse=True)
     
-    recommended_movies = [movie_id for movie_id, score in genre_similarity_scores[:top_n]]
-    
-    return recommended_movies
+    return genre_similarity_scores[:top_n]
 
 def recommend_by_tag(movie_id, movie_data, tag_data, top_n=5):
     # Get the tags of the reference movie
@@ -39,13 +37,10 @@ def recommend_by_tag(movie_id, movie_data, tag_data, top_n=5):
     tag_similarity_scores.sort(key=lambda x: x[1], reverse=True)
     
     # Get the top-N similar movies
-    recommended_movies = [movie_id for movie_id, score in tag_similarity_scores[:top_n]]
-    
-    return recommended_movies
+    return tag_similarity_scores[:top_n]
 
-def recommend_by_collaborative_filtering(movie_id, rating_data, top_n=5,sample_frac=1.0):
+def recommend_by_collaborative_filtering(movie_id, rating_data, top_n=5, sample_frac=1.0):
     # Create a user-movie rating matrix
-    # rating_matrix = [chunk.pivot_table(index='userId', columns='movieId', values='rating') for chunk in rating_data]
     if sample_frac < 1.0:
         rating_data = rating_data.sample(frac=sample_frac, random_state=1)
     
@@ -64,7 +59,7 @@ def recommend_by_collaborative_filtering(movie_id, rating_data, top_n=5,sample_f
         # Get the index of the reference movie in the similarity matrix
         movie_index = movie_ratings['movieId'].unique().tolist().index(movie_id)
     except ValueError:
-        print(f"Movie_id  not found in rating_data.")
+        print(f"Movie_id not found in rating_data.")
     
     similarity_scores = list(enumerate(similarity_matrix[movie_index]))
     
@@ -76,15 +71,37 @@ def recommend_by_collaborative_filtering(movie_id, rating_data, top_n=5,sample_f
     
     return top_similar_movies
 
-def recommend_by_hybrid(movie_id, movie_data, tag_data, rating_data, top_n=5):
-    # Implement the hybrid recommender logic here
-    # Combine the results from multiple recommender strategies
-    pass
+def recommend_by_hybrid(movie_id, movie_data, tag_data, rating_data, genome_scores, genome_tags, top_n=5):
+    # Example weights for each recommendation strategy
+    weights = {
+        'tag': 0.2,
+        'genome_tags': 0.2,
+        'collaborative_filtering': 0.3,
+        'genre': 0.3
+    }
 
-def recommend_by_visual_similarity(movie_id, movie_data, poster_data, top_n=5):
-    # Implement the visual similarity recommender logic here
-    # Use image similarity techniques to find movies with similar posters
-    pass
+    # Assume each recommendation function is modified to return a list of tuples: (movie_id, score)
+    content_based_recommendations = [(movie_id, score * weights['content_based']) for movie_id, score in recommend_by_collaborative_filtering(movie_id,  rating_data, top_n)]
+    genre_recommendations = [(movie_id, score * weights['genre']) for movie_id, score in recommend_by_genre(movie_id, movie_data, top_n)]
+    tag_recommendations = [(movie_id, score * weights['tag']) for movie_id, score in recommend_by_tag(movie_id, movie_data, tag_data, top_n)]
+    genome_tags_recommendations = [(movie_id, score * weights['genome_tags']) for movie_id, score in recommend_by_genome_tags(movie_id, movie_data, genome_scores, genome_tags, top_n)]
+
+    # Combine all recommendations into a single list
+    combined_recommendations = content_based_recommendations +  genome_tags_recommendations + genre_recommendations + tag_recommendations
+
+    # Aggregate scores for the same movie IDs
+    aggregated_scores = {}
+    for movie_id, score in combined_recommendations:
+        if movie_id in aggregated_scores:
+            aggregated_scores[movie_id] += score
+        else:
+            aggregated_scores[movie_id] = score
+
+    # Sort movies based on aggregated scores
+    sorted_recommendations = sorted(aggregated_scores.items(), key=lambda x: x[1], reverse=True)
+
+    # Return the top-N recommendations
+    return sorted_recommendations[:top_n]
 
 def recommend_by_genome_tags(movie_id, movie_data, genome_scores, genome_tags, top_n=5):
     # Get the genome scores for the reference movie
@@ -112,9 +129,7 @@ def recommend_by_genome_tags(movie_id, movie_data, genome_scores, genome_tags, t
     similarity_scores.sort(key=lambda x: x[1], reverse=True)
     
     # Get the top-N similar movies
-    top_similar_movies = [movie_index for movie_index, _ in similarity_scores[1:top_n+1]]
-    
-    return top_similar_movies
+    return similarity_scores[1:top_n+1]
 
 # ... (previous code remains the same)
 def jaccard_similarity(set1, set2):

@@ -5,7 +5,6 @@ from recommenders import (
     recommend_by_tag,
     recommend_by_collaborative_filtering,
     recommend_by_hybrid,
-    recommend_by_visual_similarity,
     recommend_by_genome_tags
 )
 import pandas as pd
@@ -46,6 +45,7 @@ def recommend_genre():
     imdb_id = int(imdb_id_str.replace('tt','')) 
     movie_id = links[links['imdbId'] == imdb_id]['movieId'].values[0]
     recommendations = recommend_by_genre(movie_id, movie_data)
+    recommendations = [movie_id for movie_id, score in recommendations[:]]
     # Convert the movieId in recommendations to imdbId
     imdb_recommendations = []
     for movie in recommendations:
@@ -62,6 +62,7 @@ def recommend_tag():
     imdb_id = int(imdb_id_str.replace('tt','')) 
     movie_id = links[links['imdbId'] == imdb_id]['movieId'].values[0]
     recommendations = recommend_by_tag(movie_id, movie_data,tag_data)
+    recommendations = [movie_id for movie_id, score in recommendations[:]]
     # Convert the movieId in recommendations to imdbId
     imdb_recommendations = []
     for movie in recommendations:
@@ -74,15 +75,37 @@ def recommend_tag():
 
 @app.route('/api/recommend/collaborative', methods=['GET'])
 def recommend_collaborative():
-    movie_id = int(request.args.get('movie_id'))
+    imdb_id_str = request.args.get('imdb_id')
+    imdb_id = int(imdb_id_str.replace('tt','')) 
+    movie_id = links[links['imdbId'] == imdb_id]['movieId'].values[0]
     recommendations = recommend_by_collaborative_filtering(movie_id, rating_data)
-    return jsonify(recommendations)
+    recommendations = [movie_id for movie_id, score in recommendations[:]]
+    # Convert the movieId in recommendations to imdbId
+    imdb_recommendations = []
+    for movie in recommendations:
+        imdb_id = links[links['movieId'] == movie]['imdbId'].values
+        if len(imdb_id) > 0:
+            formatted_id = f"tt{int(imdb_id[0]):07d}"
+            imdb_recommendations.append(formatted_id)
+    
+    return jsonify(imdb_recommendations)
 
 @app.route('/api/recommend/hybrid', methods=['GET'])
 def recommend_hybrid():
-    movie_id = request.args.get('movie_id')
-    recommendations = recommend_by_hybrid(movie_id, movie_data, tag_data, rating_data)
-    return jsonify(recommendations)
+    imdb_id_str = request.args.get('imdb_id')
+    imdb_id = int(imdb_id_str.replace('tt','')) 
+    movie_id = links[links['imdbId'] == imdb_id]['movieId'].values[0]
+    recommendations = recommend_by_hybrid(movie_id, movie_data=movie_data, tag_data=tag_data, rating_data=rating_data,genome_scores=genome_scores,genome_tags=genome_tags)
+    recommendations = [movie_index for movie_index, _ in recommendations[:]]
+    # Convert the movieId in recommendations to imdbId
+    imdb_recommendations = []
+    for movie in recommendations:
+        imdb_id = links[links['movieId'] == movie]['imdbId'].values
+        if len(imdb_id) > 0:
+            formatted_id = f"tt{int(imdb_id[0]):07d}"
+            imdb_recommendations.append(formatted_id)
+    
+    return jsonify(imdb_recommendations)
 
 @app.route('/api/recommend/genome-scores', methods=['GET'])
 def recommend_genome_scores():
@@ -90,6 +113,7 @@ def recommend_genome_scores():
     imdb_id = int(imdb_id_str.replace('tt','')) 
     movie_id = links[links['imdbId'] == imdb_id]['movieId'].values[0]
     recommendations = recommend_by_genome_tags(movie_id, movie_data,genome_scores,genome_tags)
+    recommendations = [movie_index for movie_index, _ in recommendations[:]]
     # Convert the movieId in recommendations to imdbId
     imdb_recommendations = []
     for movie in recommendations:
